@@ -7,73 +7,89 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        :root { --primary: #0088cc; --dark: #1d2d35; --gray: #f4f7f9; --success: #27ae60; }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--gray); margin: 0; padding: 0; }
-        #app { max-width: 500px; margin: 0 auto; background: white; min-height: 100vh; display: flex; flex-direction: column; }
-        header { padding: 20px; background: white; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; position: sticky; top: 0; z-index: 100; }
-        .screen { flex: 1; padding: 20px; display: none; }
+        :root { --primary: #0088cc; --dark: #1d2d35; --gray: #f4f7f9; --success: #27ae60; --text-light: #7f8c8d; }
+        body { font-family: 'Segoe UI', Roboto, sans-serif; background: var(--gray); margin: 0; padding: 0; color: var(--dark); }
+        
+        #app { max-width: 500px; margin: 0 auto; background: white; min-height: 100vh; display: flex; flex-direction: column; box-shadow: 0 0 20px rgba(0,0,0,0.05); }
+        
+        header { padding: 20px; background: white; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f0f0f0; position: sticky; top: 0; z-index: 100; }
+        .user-info h2 { margin: 0; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px; }
+        
+        .screen { flex: 1; padding: 20px; display: none; animation: fadeIn 0.3s ease; }
         .active { display: block; }
-        .card { background: var(--gray); padding: 15px; border-radius: 15px; margin-bottom: 10px; border: 1px solid #e0e0e0; }
-        .btn-main { background: var(--primary); color: white; border: none; padding: 15px; border-radius: 12px; width: 100%; font-weight: bold; cursor: pointer; }
-        .btn-approve { background: var(--success); color: white; border: none; padding: 8px 15px; border-radius: 8px; cursor: pointer; }
-        nav { height: 70px; background: white; border-top: 1px solid #eee; display: flex; justify-content: space-around; align-items: center; position: sticky; bottom: 0; }
-        .nav-item { text-align: center; color: #ccc; cursor: pointer; font-size: 12px; }
-        .nav-item i { font-size: 20px; display: block; margin-bottom: 4px; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .card { background: var(--gray); padding: 18px; border-radius: 18px; margin-bottom: 15px; border: 1px solid #ececec; }
+        
+        .btn-main { background: var(--primary); color: white; border: none; padding: 16px; border-radius: 14px; width: 100%; font-weight: bold; cursor: pointer; font-size: 16px; transition: 0.2s; }
+        .btn-main:active { transform: scale(0.98); opacity: 0.9; }
+        
+        .btn-approve { background: var(--success); color: white; border: none; padding: 10px 18px; border-radius: 10px; cursor: pointer; font-weight: 600; }
+        
+        nav { height: 75px; background: white; border-top: 1px solid #f0f0f0; display: flex; justify-content: space-around; align-items: center; position: sticky; bottom: 0; }
+        .nav-item { text-align: center; color: #bdc3c7; cursor: pointer; font-size: 11px; font-weight: 500; position: relative; }
+        .nav-item i { font-size: 22px; display: block; margin-bottom: 5px; transition: 0.3s; }
         .nav-item.active-nav { color: var(--primary); }
-        .badge { background: red; color: white; border-radius: 50%; padding: 2px 6px; font-size: 10px; position: absolute; }
+        
+        .badge { background: #e74c3c; color: white; border-radius: 50%; padding: 2px 7px; font-size: 10px; position: absolute; top: -5px; right: -10px; border: 2px solid white; }
+        
+        .status-dot { height: 8px; width: 8px; background-color: var(--primary); border-radius: 50%; display: inline-block; margin-right: 5px; }
     </style>
 </head>
 <body>
 
 <div id="app">
     <header>
-        <div>
-            <h2 id="userName" style="margin:0; font-size: 16px;">Cargando...</h2>
-            <p id="userStatus" style="margin:0; font-size: 11px; color: var(--primary);">Verificando...</p>
+        <div class="user-info">
+            <h2 id="userName">Cargando...</h2>
+            <p id="userStatus" style="margin:0; font-size: 11px; color: var(--text-light);"><span class="status-dot"></span>Verificando...</p>
         </div>
-        <div id="userBalance" style="font-weight: bold; color: var(--primary); font-size: 18px;">$0</div>
+        <div id="userBalance" style="font-weight: 800; color: var(--primary); font-size: 19px;">$0</div>
     </header>
 
     <div id="screen-register" class="screen">
-        <div id="aduana-msg" style="text-align: center; margin-top: 50px;">
-            <i class="fas fa-passport fa-4x" style="color: var(--primary); margin-bottom: 20px;"></i>
-            <h2>Identidad en Validación</h2>
-            <p>Tus datos están en la Aduana de Samy. El Soberano te dará acceso pronto.</p>
+        <div style="text-align: center; margin-top: 60px; padding: 0 20px;">
+            <div style="background: var(--gray); width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px;">
+                <i class="fas fa-passport fa-2xl" style="color: var(--primary);"></i>
+            </div>
+            <h2 style="font-size: 22px;">Identidad en Validación</h2>
+            <p style="color: var(--text-light); line-height: 1.5;">Tus datos están en la Aduana de Samy. El Soberano Carlos revisará tu perfil pronto.</p>
         </div>
     </div>
 
     <div id="screen-home" class="screen">
-        <div class="card" style="height: 250px; display: flex; align-items: center; justify-content: center;">
+        <div class="card" style="height: 280px; display: flex; align-items: center; justify-content: center; background-image: radial-gradient(#dcdde1 1px, transparent 1px); background-size: 20px 20px;">
             <div style="text-align: center;">
-                <i class="fas fa-map-marked-alt fa-3x" style="color: #bdc3c7;"></i>
-                <p>Ubicación actual detectada</p>
+                <i class="fas fa-location-dot fa-3x" style="color: var(--primary); margin-bottom: 10px;"></i>
+                <p style="font-weight: 500; color: var(--text-light);">Ubicación detectada</p>
             </div>
         </div>
-        <button class="btn-main"><i class="fas fa-taxi"></i> Solicitar Servicio</button>
+        <button class="btn-main"><i class="fas fa-paper-plane" style="margin-right: 8px;"></i> Solicitar Servicio</button>
     </div>
 
     <div id="screen-aduana" class="screen">
-        <h3><i class="fas fa-users-cog"></i> Gestión de Aspirantes</h3>
+        <h3 style="margin-bottom: 20px;"><i class="fas fa-user-shield" style="margin-right: 10px;"></i> Gestión de Aspirantes</h3>
         <div id="lista-aduana">
-            <p style="text-align: center; color: #999;">No hay solicitudes pendientes.</p>
+            <p style="text-align: center; color: #999; margin-top: 40px;">No hay solicitudes pendientes.</p>
         </div>
     </div>
 
     <div id="screen-wallet" class="screen">
-        <h3>Mi Billetera</h3>
-        <div class="card" style="background: var(--primary); color: white;">
-            <p style="margin:0;">Saldo Disponible</p>
-            <h1 id="walletAmount" style="margin:5px 0;">$0</h1>
+        <h3 style="margin-bottom: 20px;">Mi Billetera</h3>
+        <div class="card" style="background: linear-gradient(135deg, var(--primary), #00a8ff); color: white; border: none; box-shadow: 0 10px 20px rgba(0,136,204,0.2);">
+            <p style="margin:0; opacity: 0.8; font-size: 14px;">Saldo Disponible</p>
+            <h1 id="walletAmount" style="margin:10px 0; font-size: 36px;">$0</h1>
+            <div style="text-align: right; opacity: 0.9;"><i class="fas fa-wallet fa-lg"></i></div>
         </div>
     </div>
 
     <nav id="mainNav">
-        <div class="nav-item active-nav" onclick="changeScreen('home', this)"><i class="fas fa-map"></i>Mapa</div>
+        <div class="nav-item active-nav" onclick="changeScreen('home', this)"><i class="fas fa-compass"></i>Mapa</div>
         <div id="nav-aduana-btn" class="nav-item" style="display:none;" onclick="changeScreen('aduana', this)">
-            <i class="fas fa-shield-alt"></i>Aduana <span id="count-badge" class="badge" style="display:none;">0</span>
+            <i class="fas fa-id-card"></i>Aduana <span id="count-badge" class="badge" style="display:none;">0</span>
         </div>
         <div class="nav-item" onclick="changeScreen('wallet', this)"><i class="fas fa-wallet"></i>Billetera</div>
-        <div class="nav-item" onclick="changeScreen('profile', this)"><i class="fas fa-user"></i>Perfil</div>
+        <div class="nav-item" onclick="changeScreen('profile', this)"><i class="fas fa-user-circle"></i>Perfil</div>
     </nav>
 </div>
 
@@ -89,7 +105,7 @@
 
     async function init() {
         if (phone === SOBERANO_PHONE) {
-            setupUI("Carlos Albeiro Troncoso Pulido Soberano", "Control Total", "∞", true, true);
+            setupUI("Carlos Albeiro Troncoso Pulido", "Soberano", "∞", true, true);
             cargarSolicitudesAduana();
         } else {
             const { data: profile } = await _supabase.from('profiles').select('*').eq('id', chatId).maybeSingle();
@@ -103,9 +119,9 @@
 
     function setupUI(name, status, balance, active, isSoberano) {
         document.getElementById('userName').innerText = name;
-        document.getElementById('userStatus').innerText = status;
-        document.getElementById('userBalance').innerText = "$" + balance;
-        document.getElementById('walletAmount').innerText = "$" + balance;
+        document.getElementById('userStatus').innerHTML = `<span class="status-dot" style="background:${active?'#27ae60':'#f1c40f'}"></span>${status}`;
+        document.getElementById('userBalance').innerText = balance === "∞" ? balance : "$" + balance;
+        document.getElementById('walletAmount').innerText = balance === "∞" ? balance : "$" + balance;
 
         if (isSoberano) {
             document.getElementById('nav-aduana-btn').style.display = 'block';
@@ -115,7 +131,7 @@
             showScreen('screen-home');
         } else {
             showScreen('screen-register');
-            document.getElementById('mainNav').style.opacity = "0.5";
+            document.getElementById('mainNav').style.opacity = "0.4";
             document.getElementById('mainNav').style.pointerEvents = "none";
         }
     }
@@ -127,27 +143,23 @@
             document.getElementById('count-badge').innerText = data.length;
             document.getElementById('count-badge').style.display = 'inline';
             container.innerHTML = data.map(user => `
-                <div class="card" style="text-align: left;">
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <div>
-                            <strong style="display:block;">${user.full_name}</strong>
-                            <small>CC: ${user.numero_documento} | Tel: ${user.phone}</small>
-                        </div>
-                        <button class="btn-approve" onclick="aprobarUsuario('${user.id}', '${user.full_name}', '${user.phone}')">Aprobar</button>
+                <div class="card" style="text-align: left; display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <strong style="display:block; font-size: 15px;">${user.full_name}</strong>
+                        <p style="margin: 3px 0 0; font-size: 11px; color: var(--text-light);">CC: ${user.numero_documento} • Tel: ${user.phone}</p>
                     </div>
+                    <button class="btn-approve" onclick="aprobarUsuario('${user.id}', '${user.full_name}', '${user.phone}')">Aprobar</button>
                 </div>
             `).join('');
         }
     }
 
     async function aprobarUsuario(id, nombre, tel) {
-        // 1. Crear perfil real
         const { error: err1 } = await _supabase.from('profiles').insert([{ id: id, full_name: nombre, phone: tel, balance_prepago: 0 }]);
-        // 2. Marcar como aprobado en pre_registro
         const { error: err2 } = await _supabase.from('pre_registro').update({ status: 'aprobado' }).eq('id', id);
         
         if (!err1 && !err2) {
-            alert("Usuario aprobado con éxito.");
+            alert("✅ Usuario aprobado con éxito.");
             cargarSolicitudesAduana();
         }
     }

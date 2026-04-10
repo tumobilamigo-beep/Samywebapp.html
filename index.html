@@ -31,7 +31,6 @@
             box-shadow: 0 0 40px rgba(0,0,0,0.3);
         }
 
-        /* Header Estilo Royale */
         header { 
             padding: 20px; background: white; 
             display: flex; justify-content: space-between; align-items: center; 
@@ -41,12 +40,10 @@
         .user-info h2 { margin: 0; font-size: 14px; font-weight: 700; color: var(--dark); }
         .status-dot { height: 8px; width: 8px; border-radius: 50%; display: inline-block; margin-right: 5px; }
 
-        /* Pantallas */
         .screen { flex: 1; padding: 25px; display: none; overflow-y: auto; animation: fadeIn 0.4s ease; }
         .active { display: block; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* Tarjetas y Botones Modernos */
         .card { 
             background: white; padding: 20px; border-radius: 20px; 
             margin-bottom: 15px; border: 1px solid #f0f0f0;
@@ -66,7 +63,6 @@
             border: 1px solid #ddd; background: #f8fafc; font-size: 16px; box-sizing: border-box;
         }
 
-        /* Nav Bar Glass */
         nav { 
             height: 80px; background: rgba(255,255,255,0.8); 
             backdrop-filter: blur(10px); border-top: 1px solid rgba(0,0,0,0.05);
@@ -80,7 +76,6 @@
             padding: 2px 6px; font-size: 10px; position: absolute; top: -5px; right: -10px;
         }
 
-        /* Wallet Royale */
         .wallet-card {
             background: linear-gradient(135deg, #1e293b, #334155);
             color: white; padding: 25px; border-radius: 24px; text-align: center;
@@ -107,13 +102,14 @@
             </div>
             <input type="text" id="regName" placeholder="Nombre Completo">
             <input type="number" id="regDoc" placeholder="Número de Documento">
-            <button class="btn-main" onclick="enviarAduana()">Solicitar Ingreso</button>
+            <button id="btnSolicitar" class="btn-main" onclick="enviarAduana()">Solicitar Ingreso</button>
         </div>
 
         <div id="aduana-msg" style="display:none; text-align: center; margin-top: 50px;">
             <i class="fas fa-passport fa-4x" style="color: var(--primary); margin-bottom: 20px;"></i>
             <h2>Identidad en Validación</h2>
             <p style="color: #64748b;">Tus datos están en la Aduana de Samy. El Soberano Carlos revisará tu perfil pronto.</p>
+            <p id="msg-feedback" style="color: var(--success); font-size: 13px; margin-top: 20px; display: none;">¡Registro enviado con éxito!</p>
         </div>
     </div>
 
@@ -161,11 +157,10 @@
     const SOBERANO_PHONE = "573145210546";
 
     async function init() {
-        await verificarEstado(); // Primera carga
-        suscribirCambios();     // Activar escucha en tiempo real
+        await verificarEstado(); 
+        suscribirCambios();     
     }
 
-    // 1. FUNCIÓN CENTRAL DE VERIFICACIÓN
     async function verificarEstado() {
         if (phone === SOBERANO_PHONE) {
             setupUI("Carlos Albeiro Troncoso Pulido", "Soberano", "∞", true, true);
@@ -189,37 +184,22 @@
         }
     }
 
-function suscribirCambios() {
-    // Escuchar TODO en la tabla profiles (especialmente cambios de nombre/saldo)
-    _supabase
-        .channel('cambios-perfil')
-        .on('postgres_changes', 
-            { 
-                event: '*', // Escucha INSERT, UPDATE y DELETE
-                schema: 'public', 
-                table: 'profiles', 
-                filter: `id=eq.${chatId}` 
-            }, 
-            (payload) => {
-                console.log("Cambio detectado en perfil:", payload);
-                verificarEstado(); // Recarga la UI automáticamente
-            }
-        )
-        .subscribe();
+    function suscribirCambios() {
+        _supabase
+            .channel('cambios-perfil')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles', filter: `id=eq.${chatId}` }, 
+            (payload) => { verificarEstado(); })
+            .subscribe();
 
-    // Escuchar cambios en la Aduana (Para el Soberano)
-    _supabase
-        .channel('cambios-aduana')
-        .on('postgres_changes', 
-            { event: '*', schema: 'public', table: 'pre_registro' }, 
+        _supabase
+            .channel('cambios-aduana')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'pre_registro' }, 
             () => {
                 if (phone === SOBERANO_PHONE) cargarSolicitudesAduana();
-            }
-        )
-        .subscribe();
-}
-
-    // --- FUNCIONES DE INTERFAZ (IGUALES A LAS ANTERIORES) ---
+                else verificarEstado(); // Si el usuario es borrado o actualizado, re-verificar
+            })
+            .subscribe();
+    }
 
     function setupUI(name, status, balance, active, isSoberano) {
         document.getElementById('userName').innerText = name;
@@ -243,12 +223,36 @@ function suscribirCambios() {
     async function enviarAduana() {
         const nombre = document.getElementById('regName').value;
         const doc = document.getElementById('regDoc').value;
-        if (!nombre || !doc) return alert("Completa los datos");
+        
+        if (!nombre || !doc) return alert("Por favor, completa tus datos.");
+
+        // UX: Cambiamos la vista inmediatamente para evitar doble click
+        document.getElementById('form-registro').style.display = 'none';
+        document.getElementById('aduana-msg').style.display = 'block';
 
         const { error } = await _supabase.from('pre_registro').insert([{ 
-            id: chatId, full_name: nombre, phone: phone, numero_documento: doc, status: 'pendiente' 
+            id: chatId, 
+            full_name: nombre, 
+            phone: phone, 
+            numero_documento: doc, 
+            status: 'pendiente' 
         }]);
-        if (error) alert("Error: " + error.message);
+
+        if (error) {
+            if (error.code === "23505") { // Error de duplicado
+                console.log("El usuario ya estaba en aduana.");
+            } else {
+                // Si es un error real (internet, etc), avisamos con tacto
+                document.getElementById('form-registro').style.display = 'block';
+                document.getElementById('aduana-msg').style.display = 'none';
+                alert("Tuvimos un problema de conexión, por favor intenta de nuevo.");
+            }
+        } else {
+            // Éxito: Mostrar un pequeño feedback visual
+            const feedback = document.getElementById('msg-feedback');
+            feedback.style.display = 'block';
+            setTimeout(() => { feedback.style.opacity = '0'; }, 3000);
+        }
     }
 
     async function cargarSolicitudesAduana() {
@@ -261,38 +265,40 @@ function suscribirCambios() {
                 <div class="card" style="display:flex; justify-content:space-between; align-items:center;">
                     <div><strong>${user.full_name}</strong><br><small>CC: ${user.numero_documento}</small></div>
                     <div style="display:flex; gap:10px;">
-                        <button onclick="aprobarUsuario('${user.id}','${user.full_name}','${user.phone}')" style="color:#27ae60; border:none; background:none; font-size:24px;"><i class="fas fa-circle-check"></i></button>
-                        <button onclick="rechazarUsuario('${user.id}')" style="color:#e74c3c; border:none; background:none; font-size:24px;"><i class="fas fa-circle-xmark"></i></button>
+                        <button onclick="aprobarUsuario('${user.id}','${user.full_name}','${user.phone}')" style="color:#27ae60; border:none; background:none; font-size:24px; cursor:pointer;"><i class="fas fa-circle-check"></i></button>
+                        <button onclick="rechazarUsuario('${user.id}')" style="color:#e74c3c; border:none; background:none; font-size:24px; cursor:pointer;"><i class="fas fa-circle-xmark"></i></button>
                     </div>
                 </div>
             `).join('');
         } else {
             document.getElementById('count-badge').style.display = 'none';
-            container.innerHTML = `<p style="text-align:center; color:#94a3b8; margin-top:50px;">Aduana despejada.</p>`;
+            container.innerHTML = `<p style="text-align:center; color:#94a3b8; margin-top:50px;">Aduana despejada, Soberano.</p>`;
         }
     }
 
     async function enviarTelegram(id, msj) {
         const token = "7547466540:AAEYm7Z9_NIdl-O2R0Gsh8pQitE26U_5A4A";
-        await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ chat_id: id, text: msj, parse_mode: 'Markdown' })
-        });
+        try {
+            await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ chat_id: id, text: msj, parse_mode: 'Markdown' })
+            });
+        } catch(e) { console.error("Error enviando Telegram"); }
     }
 
     async function aprobarUsuario(id, nombre, tel) {
         const { error: err1 } = await _supabase.from('profiles').insert([{ id, full_name: nombre, phone: tel, balance_prepago: 0 }]);
         if (!err1) {
             await _supabase.from('pre_registro').delete().eq('id', id);
-            await enviarTelegram(id, `🌟 *¡Aprobado!* \nYa puedes usar Samy App.`);
+            await enviarTelegram(id, `🌟 *¡Aprobado!* \nHola ${nombre}, el Soberano ha autorizado tu ingreso a Samy App.`);
         }
     }
 
     async function rechazarUsuario(id) {
-        if (confirm("¿Rechazar aspirante?")) {
+        if (confirm("¿Soberano, desea rechazar este aspirante?")) {
             await _supabase.from('pre_registro').delete().eq('id', id);
-            await enviarTelegram(id, `🚫 *Acceso denegado*`);
+            await enviarTelegram(id, `🚫 *Acceso denegado* \nTu solicitud de ingreso ha sido rechazada.`);
         }
     }
 

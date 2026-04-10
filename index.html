@@ -152,7 +152,9 @@
     const _supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     const params = new URLSearchParams(window.location.search);
-    const chatId = params.get('id') || "DESCONOCIDO";
+    // Limpiamos el chatId para asegurar que solo sea el número
+    const rawId = params.get('id');
+    const chatId = (rawId && rawId !== "DESCONOCIDO") ? rawId : null;
     const phone = params.get('phone') || "000";
     const SOBERANO_PHONE = "573145210546";
 
@@ -166,6 +168,8 @@
             setupUI("Carlos Albeiro Troncoso Pulido", "Soberano", "∞", true, true);
             cargarSolicitudesAduana();
         } else {
+            if (!chatId) return setupUI("Nuevo Usuario", "ID no detectado", "0", false, false);
+            
             const { data: profile } = await _supabase.from('profiles').select('*').eq('id', chatId).maybeSingle();
             if (profile) {
                 setupUI(profile.full_name, "Usuario Activo", profile.balance_prepago, true, false);
@@ -185,20 +189,11 @@
     }
 
     function suscribirCambios() {
-        _supabase
-            .channel('cambios-perfil')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles', filter: `id=eq.${chatId}` }, 
-            (payload) => { verificarEstado(); })
-            .subscribe();
-
-        _supabase
-            .channel('cambios-aduana')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'pre_registro' }, 
-            () => {
-                if (phone === SOBERANO_PHONE) cargarSolicitudesAduana();
-                else verificarEstado();
-            })
-            .subscribe();
+        _supabase.channel('cambios-perfil').on('postgres_changes', { event: '*', schema: 'public', table: 'profiles', filter: `id=eq.${chatId}` }, () => { verificarEstado(); }).subscribe();
+        _supabase.channel('cambios-aduana').on('postgres_changes', { event: '*', schema: 'public', table: 'pre_registro' }, () => {
+            if (phone === SOBERANO_PHONE) cargarSolicitudesAduana();
+            else verificarEstado();
+        }).subscribe();
     }
 
     function setupUI(name, status, balance, active, isSoberano) {
@@ -206,9 +201,7 @@
         document.getElementById('userStatus').innerHTML = `<span class="status-dot" style="background:${active?'#27ae60':'#f1c40f'}"></span> ${status}`;
         document.getElementById('userBalance').innerText = balance === "∞" ? "∞" : "$" + balance;
         document.getElementById('walletAmount').innerText = balance === "∞" ? "∞" : "$" + balance;
-
         if (isSoberano) document.getElementById('nav-aduana-btn').style.display = 'block';
-        
         if (active) {
             showScreen('screen-home');
             document.getElementById('mainNav').style.opacity = "1";
@@ -223,8 +216,8 @@
     async function enviarAduana() {
         const nombre = document.getElementById('regName').value;
         const doc = document.getElementById('regDoc').value;
-        
         if (!nombre || !doc) return alert("Por favor, completa tus datos.");
+        if (!chatId) return alert("Error: No se detectó tu ID de Telegram. Abre la app desde el bot.");
 
         document.getElementById('form-registro').style.display = 'none';
         document.getElementById('aduana-msg').style.display = 'block';
@@ -233,16 +226,12 @@
             id: chatId, full_name: nombre, phone: phone, numero_documento: doc, status: 'pendiente' 
         }]);
 
-        if (error) {
-            if (error.code !== "23505") {
-                document.getElementById('form-registro').style.display = 'block';
-                document.getElementById('aduana-msg').style.display = 'none';
-                alert("Error de conexión.");
-            }
+        if (error && error.code !== "23505") {
+            document.getElementById('form-registro').style.display = 'block';
+            document.getElementById('aduana-msg').style.display = 'none';
+            alert("Error de conexión.");
         } else {
-            const feedback = document.getElementById('msg-feedback');
-            feedback.style.display = 'block';
-            setTimeout(() => { feedback.style.opacity = '0'; }, 3000);
+            document.getElementById('msg-feedback').style.display = 'block';
         }
     }
 
@@ -254,7 +243,7 @@
             document.getElementById('count-badge').style.display = 'inline';
             container.innerHTML = data.map(user => `
                 <div class="card" style="display:flex; justify-content:space-between; align-items:center;">
-                    <div><strong>${user.full_name}</strong><br><small>CC: ${user.numero_documento}</small></div>
+                    <div><strong>${user.full_name}</strong><br><small>ID: ${user.id}</small></div>
                     <div style="display:flex; gap:10px;">
                         <button onclick="aprobarUsuario('${user.id}','${user.full_name}','${user.phone}')" style="color:#27ae60; border:none; background:none; font-size:24px; cursor:pointer;"><i class="fas fa-circle-check"></i></button>
                         <button onclick="rechazarUsuario('${user.id}')" style="color:#e74c3c; border:none; background:none; font-size:24px; cursor:pointer;"><i class="fas fa-circle-xmark"></i></button>
@@ -267,66 +256,41 @@
         }
     }
 
-    // MODIFICADO: FUNCIÓN DE TELEGRAM CON DIAGNÓSTICO
-    async function enviarTelegram(destinatarioId, mensaje) {
+    async function enviarTelegram(destId, mensaje) {
         const token = "7547466540:AAEYm7Z9_NIdl-O2R0Gsh8pQitE26U_5A4A";
-        // Aseguramos que el ID no tenga espacios ni sea "DESCONOCIDO"
-        if (destinatarioId === "DESCONOCIDO") {
-            console.error("No se puede enviar Telegram: ID es DESCONOCIDO");
-            return;
-        }
-
         try {
-            const response = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+            const resp = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ 
-                    chat_id: destinatarioId, 
-                    text: mensaje, 
-                    parse_mode: 'Markdown' 
-                })
+                body: JSON.stringify({ chat_id: destId, text: mensaje, parse_mode: 'Markdown' })
             });
-            
-            const result = await response.json();
-            if (!result.ok) {
-                console.error("Telegram respondió con error:", result.description);
-                // Si el error es 403, es porque el usuario no ha iniciado el bot
-                if (result.error_code === 403) {
-                    alert("Aviso: El usuario no ha iniciado conversación con el Bot de Telegram.");
-                }
-            } else {
-                console.log("¡Mensaje enviado con éxito a Telegram!");
-            }
-        } catch(e) { 
-            console.error("Error crítico de conexión al intentar enviar Telegram:", e); 
-        }
+            const r = await resp.json();
+            if (!r.ok) console.error("Error Telegram:", r.description);
+        } catch(e) { console.error("Fallo fetch Telegram:", e); }
     }
 
-    async function aprobarUsuario(id, nombre, tel) {
+    async function aprobarUsuario(targetId, nombre, tel) {
+        console.log("Intentando aprobar a:", targetId);
         const { error: err1 } = await _supabase.from('profiles').insert([{ 
-            id: id, 
-            full_name: nombre, 
-            phone: tel, 
-            balance_prepago: 0 
+            id: targetId, full_name: nombre, phone: tel, balance_prepago: 0 
         }]);
 
         if (!err1) {
-            // Primero borramos de pre_registro
-            await _supabase.from('pre_registro').delete().eq('id', id);
-            // LUEGO enviamos el mensaje
-            console.log("Aprobando usuario e intentando notificar a ID:", id);
-            await enviarTelegram(id, `🌟 *¡Aprobado!* \nHola ${nombre}, el Soberano ha autorizado tu ingreso a Samy App.`);
+            await _supabase.from('pre_registro').delete().eq('id', targetId);
+            await enviarTelegram(targetId, `🌟 *¡Aprobado!* \nHola ${nombre}, el Soberano ha autorizado tu ingreso.`);
+            alert("Usuario aprobado con éxito.");
         } else {
-            console.error("Error al crear perfil en Supabase:", err1);
+            console.error("Error Supabase:", err1);
+            alert("Error al aprobar.");
         }
     }
 
-    async function rechazarUsuario(id) {
+    async function rechazarUsuario(targetId) {
         if (confirm("¿Soberano, desea rechazar este aspirante?")) {
-            const { error } = await _supabase.from('pre_registro').delete().eq('id', id);
+            const { error } = await _supabase.from('pre_registro').delete().eq('id', targetId);
             if (!error) {
-                console.log("Rechazando usuario e intentando notificar a ID:", id);
-                await enviarTelegram(id, `🚫 *Acceso denegado* \nTu solicitud de ingreso ha sido rechazada por el Soberano.`);
+                await enviarTelegram(targetId, `🚫 *Acceso denegado* \nTu solicitud ha sido rechazada.`);
+                alert("Usuario rechazado.");
             }
         }
     }

@@ -196,7 +196,7 @@
             .on('postgres_changes', { event: '*', schema: 'public', table: 'pre_registro' }, 
             () => {
                 if (phone === SOBERANO_PHONE) cargarSolicitudesAduana();
-                else verificarEstado(); // Si el usuario es borrado o actualizado, re-verificar
+                else verificarEstado();
             })
             .subscribe();
     }
@@ -226,29 +226,20 @@
         
         if (!nombre || !doc) return alert("Por favor, completa tus datos.");
 
-        // UX: Cambiamos la vista inmediatamente para evitar doble click
         document.getElementById('form-registro').style.display = 'none';
         document.getElementById('aduana-msg').style.display = 'block';
 
         const { error } = await _supabase.from('pre_registro').insert([{ 
-            id: chatId, 
-            full_name: nombre, 
-            phone: phone, 
-            numero_documento: doc, 
-            status: 'pendiente' 
+            id: chatId, full_name: nombre, phone: phone, numero_documento: doc, status: 'pendiente' 
         }]);
 
         if (error) {
-            if (error.code === "23505") { // Error de duplicado
-                console.log("El usuario ya estaba en aduana.");
-            } else {
-                // Si es un error real (internet, etc), avisamos con tacto
+            if (error.code !== "23505") {
                 document.getElementById('form-registro').style.display = 'block';
                 document.getElementById('aduana-msg').style.display = 'none';
-                alert("Tuvimos un problema de conexión, por favor intenta de nuevo.");
+                alert("Error de conexión.");
             }
         } else {
-            // Éxito: Mostrar un pequeño feedback visual
             const feedback = document.getElementById('msg-feedback');
             feedback.style.display = 'block';
             setTimeout(() => { feedback.style.opacity = '0'; }, 3000);
@@ -276,29 +267,51 @@
         }
     }
 
+    // FUNCIÓN DE TELEGRAM CORREGIDA
     async function enviarTelegram(id, msj) {
         const token = "7547466540:AAEYm7Z9_NIdl-O2R0Gsh8pQitE26U_5A4A";
+        const url = `https://api.telegram.org/bot${token}/sendMessage`;
+        
         try {
-            await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+            await fetch(url, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ chat_id: id, text: msj, parse_mode: 'Markdown' })
+                body: JSON.stringify({ 
+                    chat_id: id, 
+                    text: msj, 
+                    parse_mode: 'Markdown' 
+                })
             });
-        } catch(e) { console.error("Error enviando Telegram"); }
+            console.log("Mensaje enviado a Telegram ID:", id);
+        } catch(e) { 
+            console.error("Error en fetch de Telegram:", e); 
+        }
     }
 
     async function aprobarUsuario(id, nombre, tel) {
-        const { error: err1 } = await _supabase.from('profiles').insert([{ id, full_name: nombre, phone: tel, balance_prepago: 0 }]);
+        const { error: err1 } = await _supabase.from('profiles').insert([{ 
+            id: id, 
+            full_name: nombre, 
+            phone: tel, 
+            balance_prepago: 0 
+        }]);
+
         if (!err1) {
             await _supabase.from('pre_registro').delete().eq('id', id);
+            // Llamada al mensaje de Telegram
             await enviarTelegram(id, `🌟 *¡Aprobado!* \nHola ${nombre}, el Soberano ha autorizado tu ingreso a Samy App.`);
+        } else {
+            console.error("Error al crear perfil:", err1);
         }
     }
 
     async function rechazarUsuario(id) {
         if (confirm("¿Soberano, desea rechazar este aspirante?")) {
-            await _supabase.from('pre_registro').delete().eq('id', id);
-            await enviarTelegram(id, `🚫 *Acceso denegado* \nTu solicitud de ingreso ha sido rechazada.`);
+            const { error } = await _supabase.from('pre_registro').delete().eq('id', id);
+            if (!error) {
+                // Llamada al mensaje de Telegram
+                await enviarTelegram(id, `🚫 *Acceso denegado* \nTu solicitud de ingreso ha sido rechazada por el Soberano.`);
+            }
         }
     }
 

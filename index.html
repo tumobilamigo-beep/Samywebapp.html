@@ -2,190 +2,128 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Samy App - Royale</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Samy Aduana - Modo Rescate</title>
     
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
     <style>
-        :root { --p: #0088cc; --p-l: #00a8ff; --d: #0f172a; --s: #27ae60; --err: #e74c3c; }
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
-            background: #0f172a; margin: 0; color: var(--d); height: 100vh; overflow: hidden;
-        }
-        #app { 
-            max-width: 500px; margin: 0 auto; background: rgba(255,255,255,0.95); 
-            backdrop-filter: blur(10px); min-height: 100vh; display: flex; flex-direction: column; 
-        }
-        header { padding: 15px 20px; background: white; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
-        .screen { flex: 1; padding: 25px; display: none; overflow-y: auto; -webkit-overflow-scrolling: touch; }
-        .active { display: block !important; }
-        .btn-main { 
-            background: linear-gradient(135deg, var(--p), var(--p-l)); color: white; border: none; 
-            padding: 18px; border-radius: 16px; width: 100%; font-weight: bold; font-size: 16px;
-        }
-        input { width: 100%; padding: 15px; margin: 10px 0; border-radius: 12px; border: 1px solid #ddd; box-sizing: border-box; font-size: 16px; }
-        nav { height: 70px; background: white; border-top: 1px solid #eee; display: flex; justify-content: space-around; align-items: center; padding-bottom: env(safe-area-inset-bottom); }
-        .nav-item { text-align: center; color: #94a3b8; font-size: 11px; flex: 1; }
-        .nav-item i { font-size: 20px; display: block; }
-        .active-nav { color: var(--p); }
-        .card { background: white; padding: 20px; border-radius: 20px; border: 1px solid #f0f0f0; margin-bottom: 15px; }
-        .status-dot { height: 8px; width: 8px; border-radius: 50%; display: inline-block; margin-right: 5px; }
+        body { font-family: sans-serif; background: #0f172a; margin: 0; color: #333; }
+        #app { max-width: 500px; margin: 0 auto; background: white; min-height: 100vh; padding: 20px; box-sizing: border-box; }
+        .card { border: 1px solid #eee; padding: 15px; border-radius: 15px; margin-bottom: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .btn-approve { color: #27ae60; background: none; border: none; font-size: 24px; cursor: pointer; }
+        .btn-reject { color: #e74c3c; background: none; border: none; font-size: 24px; cursor: pointer; }
+        input { width: 100%; padding: 12px; margin: 8px 0; border-radius: 10px; border: 1px solid #ccc; box-sizing: border-box; }
+        .btn-send { background: #0088cc; color: white; border: none; padding: 15px; width: 100%; border-radius: 10px; font-weight: bold; }
+        h2 { color: #0088cc; text-align: center; }
+        .status-msg { text-align: center; padding: 20px; color: #64748b; }
     </style>
 </head>
 <body>
 
 <div id="app">
-    <header>
-        <div>
-            <h2 id="userName" style="margin:0; font-size:14px;">Cargando...</h2>
-            <p id="userStatus" style="margin:0; font-size:11px; color:#64748b;">Verificando conexión...</p>
-        </div>
-        <div id="userBalance" style="font-weight:800; color:var(--p); font-size:18px;">$0</div>
-    </header>
-
-    <div id="screen-register" class="screen">
-        <div id="form-registro" style="display:none; text-align:center;">
-            <i class="fas fa-id-card fa-3x" style="color:var(--p); margin-bottom:15px;"></i>
-            <h2>Identificación</h2>
-            <input type="text" id="regName" placeholder="Nombre Completo">
-            <input type="number" id="regDoc" placeholder="Cédula/Documento">
-            <button class="btn-main" onclick="enviarAduana()">Solicitar Acceso</button>
-        </div>
-        <div id="aduana-msg" style="display:none; text-align:center; margin-top:40px;">
-            <i class="fas fa-clock fa-4x" style="color:#f1c40f; margin-bottom:20px;"></i>
-            <h2>En Revisión</h2>
-            <p>El Soberano está validando tu perfil. Recibirás un mensaje al ser aprobado.</p>
-        </div>
+    <div id="header-simple" style="text-align: center; border-bottom: 1px solid #eee; margin-bottom: 20px; padding-bottom: 10px;">
+        <h3 id="display-name">Cargando...</h3>
+        <small id="display-status">Verificando...</small>
     </div>
 
-    <div id="screen-home" class="screen">
-        <div class="card" style="height:200px; display:flex; align-items:center; justify-content:center; background:#f8fafc; border:2px dashed #cbd5e1;">
-            <p style="color:#94a3b8;"><i class="fas fa-map-marked-alt"></i> Mapa en línea</p>
-        </div>
-        <button class="btn-main" onclick="window.Telegram.WebApp.HapticFeedback.impactOccurred('medium')">Solicitar Servicio</button>
+    <div id="view-register" style="display:none;">
+        <h2>Registro de Aduana</h2>
+        <input type="text" id="regName" placeholder="Nombre Completo">
+        <input type="number" id="regDoc" placeholder="Documento de Identidad">
+        <button class="btn-send" onclick="registrar()">Solicitar Ingreso</button>
     </div>
 
-    <div id="screen-aduana" class="screen">
-        <h3>Aduana Realtime</h3>
-        <div id="lista-aduana"></div>
+    <div id="view-waiting" style="display:none;" class="status-msg">
+        <i class="fas fa-user-clock fa-4x" style="color:#f1c40f;"></i>
+        <p>Tu solicitud está en la <b>Aduana de Samy</b>.<br>Espera a que el Soberano te apruebe.</p>
     </div>
 
-    <div id="screen-wallet" class="screen">
-        <div class="card" style="background:var(--d); color:white; text-align:center; padding:30px;">
-            <small>Saldo Disponible</small>
-            <h1 id="walletAmount" style="font-size:35px;">$0</h1>
-        </div>
+    <div id="view-admin" style="display:none;">
+        <h2>Gestión de Aduana</h2>
+        <div id="lista-pendientes"></div>
     </div>
 
-    <nav id="mainNav" style="display:none;">
-        <div class="nav-item active-nav" onclick="changeScreen('home', this)"><i class="fas fa-compass"></i>Mapa</div>
-        <div id="nav-aduana-btn" class="nav-item" style="display:none;" onclick="changeScreen('aduana', this)"><i class="fas fa-passport"></i>Aduana</div>
-        <div class="nav-item" onclick="changeScreen('wallet', this)"><i class="fas fa-wallet"></i>Saldo</div>
-    </nav>
+    <div id="view-success" style="display:none;" class="status-msg">
+        <i class="fas fa-check-circle fa-4x" style="color:#27ae60;"></i>
+        <h2>¡Acceso Concedido!</h2>
+        <p>Ya eres parte del sistema. Pronto habilitaremos el mapa.</p>
+    </div>
 </div>
 
 <script>
     const tg = window.Telegram.WebApp;
-    // INICIALIZACIÓN INMEDIATA (Para evitar el freeze)
     tg.ready();
     tg.expand();
 
-    const SUPABASE_URL = "https://fsdqvdxvhqauyqczgsfb.supabase.co";
-    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZzZHF2ZHh2aHFhdXlxY3pnc2ZiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ5NjU0OTIsImV4cCI6MjA5MDU0MTQ5Mn0.AA7CgSig_lgXSwVeZex-C1AExRKgN1sMuIBnzH9pfqM";
-    const _supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const _supabase = window.supabase.createClient(
+        "https://fsdqvdxvhqauyqczgsfb.supabase.co", 
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZzZHF2ZHh2aHFhdXlxY3pnc2ZiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ5NjU0OTIsImV4cCI6MjA5MDU0MTQ5Mn0.AA7CgSig_lgXSwVeZex-C1AExRKgN1sMuIBnzH9pfqM"
+    );
 
     const params = new URLSearchParams(window.location.search);
     const chatId = params.get('id') || (tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id.toString() : null);
     const phone = params.get('phone') || "000";
     const SOBERANO_PHONE = "573145210546";
 
-    async function startApp() {
-        try {
-            await verificarUsuario();
-            escucharCambios();
-        } catch (e) {
-            console.error("Init Error", e);
-            document.getElementById('userName').innerText = "Error de Conexión";
-        }
-    }
-
-    async function verificarUsuario() {
+    async function checkLogic() {
         if (phone === SOBERANO_PHONE) {
-            renderUI("Soberano Carlos", "Control Total", "∞", true, true);
-            actualizarAduana();
-            return;
-        }
-
-        if (!chatId) {
-            renderUI("Desconocido", "Error de ID", "0", false, false);
-            document.getElementById('form-registro').style.display = 'block';
+            showView('view-admin');
+            document.getElementById('display-name').innerText = "Soberano Carlos";
+            document.getElementById('display-status').innerText = "Panel de Control";
+            fetchAduana();
             return;
         }
 
         const { data: profile } = await _supabase.from('profiles').select('*').eq('id', chatId).maybeSingle();
-        
         if (profile) {
-            renderUI(profile.full_name, "Activo", profile.balance_prepago, true, false);
+            showView('view-success');
+            document.getElementById('display-name').innerText = profile.full_name;
+            document.getElementById('display-status').innerText = "Usuario Autorizado";
         } else {
             const { data: pre } = await _supabase.from('pre_registro').select('*').eq('id', chatId).maybeSingle();
             if (pre) {
-                renderUI("Invitado", "En Aduana", "0", false, false);
-                document.getElementById('aduana-msg').style.display = 'block';
+                showView('view-waiting');
+                document.getElementById('display-name').innerText = "Invitado";
+                document.getElementById('display-status').innerText = "En Revisión";
             } else {
-                renderUI("Nuevo", "Registro", "0", false, false);
-                document.getElementById('form-registro').style.display = 'block';
+                showView('view-register');
+                document.getElementById('display-name').innerText = "Nuevo Usuario";
+                document.getElementById('display-status').innerText = "Pendiente de Registro";
             }
         }
     }
 
-    function renderUI(name, status, balance, isMain, isSoberano) {
-        document.getElementById('userName').innerText = name;
-        document.getElementById('userStatus').innerText = status;
-        document.getElementById('userBalance').innerText = balance === "∞" ? "∞" : "$" + balance;
-        document.getElementById('walletAmount').innerText = balance === "∞" ? "∞" : "$" + balance;
-
-        if (isSoberano) document.getElementById('nav-aduana-btn').style.display = 'block';
-
-        if (isMain || isSoberano) {
-            document.getElementById('mainNav').style.display = 'flex';
-            showScreen('screen-home');
-        } else {
-            showScreen('screen-register');
-        }
+    function showView(id) {
+        ['view-register', 'view-waiting', 'view-admin', 'view-success'].forEach(v => {
+            document.getElementById(v).style.display = 'none';
+        });
+        document.getElementById(id).style.display = 'block';
     }
 
-    function escucharCambios() {
-        _supabase.channel('any').on('postgres_changes', { event: '*', schema: 'public' }, () => {
-            verificarUsuario();
-            if (phone === SOBERANO_PHONE) actualizarAduana();
-        }).subscribe();
-    }
-
-    async function enviarAduana() {
+    async function registrar() {
         const n = document.getElementById('regName').value;
         const d = document.getElementById('regDoc').value;
-        if (!n || !d) return alert("Completa los datos");
+        if (!n || !d) return alert("Llena los campos");
 
-        const { error } = await _supabase.from('pre_registro').insert([{ id: chatId, full_name: n, phone: phone, numero_documento: d }]);
-        if (!error) verificarUsuario();
-        else alert("Error al enviar registro.");
+        await _supabase.from('pre_registro').insert([{ id: chatId, full_name: n, phone: phone, numero_documento: d }]);
+        checkLogic();
     }
 
-    async function actualizarAduana() {
+    async function fetchAduana() {
         const { data } = await _supabase.from('pre_registro').select('*');
-        const list = document.getElementById('lista-aduana');
-        list.innerHTML = data && data.length ? data.map(u => `
+        const cont = document.getElementById('lista-pendientes');
+        cont.innerHTML = data && data.length ? data.map(u => `
             <div class="card" style="display:flex; justify-content:space-between; align-items:center;">
-                <div><b>${u.full_name}</b><br><small>${u.id}</small></div>
+                <div><b>${u.full_name}</b><br><small>ID: ${u.id}</small></div>
                 <div>
-                    <button onclick="aprobar('${u.id}','${u.full_name}','${u.phone}')" style="color:green; border:none; background:none; font-size:20px;"><i class="fas fa-check"></i></button>
-                    <button onclick="rechazar('${u.id}')" style="color:red; border:none; background:none; font-size:20px; margin-left:10px;"><i class="fas fa-times"></i></button>
+                    <button class="btn-approve" onclick="aprobar('${u.id}','${u.full_name}','${u.phone}')"><i class="fas fa-check-circle"></i></button>
+                    <button class="btn-reject" onclick="rechazar('${u.id}')"><i class="fas fa-times-circle"></i></button>
                 </div>
             </div>
-        `).join('') : '<p>Sin pendientes</p>';
+        `).join('') : '<p style="text-align:center;">No hay solicitudes.</p>';
     }
 
     async function aprobar(id, n, t) {
@@ -198,19 +136,12 @@
         await _supabase.from('pre_registro').delete().eq('id', id);
     }
 
-    function showScreen(id) {
-        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-        document.getElementById(id).classList.add('active');
-    }
+    // Suscripción Realtime Simple
+    _supabase.channel('schema-db-changes').on('postgres_changes', { event: '*', schema: 'public' }, () => {
+        checkLogic();
+    }).subscribe();
 
-    function changeScreen(s, el) {
-        document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active-nav'));
-        el.classList.add('active-nav');
-        showScreen('screen-' + s);
-    }
-
-    // DISPARO DE INICIO
-    startApp();
+    checkLogic();
 </script>
 </body>
 </html>

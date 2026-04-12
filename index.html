@@ -1,76 +1,82 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script>
-        window.Telegram.WebApp.ready(); // Avisa al cel antes de que cargue el resto
-        window.Telegram.WebApp.expand();
-    </script>
-    
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Samy App</title>
+    <title>Samy App - Vercel Edition</title>
     
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script>
+        // Avisamos a Telegram inmediatamente
+        window.Telegram.WebApp.ready();
+        window.Telegram.WebApp.expand();
+        // Evita que el scroll del navegador interfiera con la app
+        window.Telegram.WebApp.disableVerticalSwipedown();
+    </script>
+
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
     <style>
-        /* Mantenemos tu diseño pero aseguramos que el body no se bloquee */
+        :root { --p: #0088cc; --d: #0f172a; }
         body { 
-            font-family: 'Segoe UI', system-ui, -apple-system; 
-            background: #0f172a; margin: 0; padding: 0; 
-            height: 100vh; width: 100vw; overflow: hidden;
-            -webkit-font-smoothing: antialiased;
+            font-family: -apple-system, system-ui, sans-serif; 
+            background: var(--d); margin: 0; color: #333;
+            height: 100vh; overflow: hidden;
         }
         #app { background: white; height: 100vh; display: flex; flex-direction: column; }
         .screen { flex: 1; padding: 20px; display: none; overflow-y: auto; }
         .active { display: block !important; }
-        /* Tus estilos siguen aquí... */
-        .btn-main { background: #0088cc; color: white; border: none; padding: 15px; border-radius: 12px; width: 100%; font-weight: bold; }
-        nav { display: flex; border-top: 1px solid #eee; padding: 10px 0; background: white; }
-        .nav-item { flex: 1; text-align: center; color: #94a3b8; font-size: 11px; }
+        .loader { text-align: center; margin-top: 100px; color: var(--p); }
+        .btn-main { background: var(--p); color: white; border: none; padding: 18px; border-radius: 15px; width: 100%; font-weight: bold; }
+        input { width: 100%; padding: 15px; margin: 10px 0; border-radius: 12px; border: 1px solid #ddd; box-sizing: border-box; }
     </style>
 </head>
 <body>
 
 <div id="app">
-    <div id="screen-loading" class="screen active" style="text-align: center; padding-top: 50px;">
-        <i class="fas fa-circle-notch fa-spin fa-3x" style="color: #0088cc;"></i>
-        <p>Iniciando Samy App...</p>
+    <div id="screen-loading" class="screen active">
+        <div class="loader">
+            <i class="fas fa-spinner fa-spin fa-3x"></i>
+            <p>Sincronizando con el Soberano...</p>
+        </div>
     </div>
 
     <div id="screen-register" class="screen">
-        <h2>Registro</h2>
-        <input type="text" id="regName" placeholder="Nombre">
-        <input type="number" id="regDoc" placeholder="Cédula">
+        <h2 style="text-align:center">Registro Real</h2>
+        <input type="text" id="regName" placeholder="Nombre Completo">
+        <input type="number" id="regDoc" placeholder="Documento">
         <button class="btn-main" onclick="enviarAduana()">Solicitar Acceso</button>
     </div>
 
     <div id="screen-aduana" class="screen">
-        <h3>Panel Soberano</h3>
+        <h3>Aduana (Soberano)</h3>
         <div id="lista-aduana"></div>
     </div>
 
     <div id="screen-home" class="screen">
-        <h3>Bienvenido</h3>
-        <p>Acceso concedido.</p>
+        <h3>Samy App</h3>
+        <p>¡Bienvenido al sistema!</p>
     </div>
 </div>
 
 <script>
     const tg = window.Telegram.WebApp;
-    const SUPABASE_URL = "https://fsdqvdxvhqauyqczgsfb.supabase.co";
-    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZzZHF2ZHh2aHFhdXlxY3pnc2ZiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ5NjU0OTIsImV4cCI6MjA5MDU0MTQ5Mn0.AA7CgSig_lgXSwVeZex-C1AExRKgN1sMuIBnzH9pfqM";
-    const _supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const _supabase = window.supabase.createClient(
+        "https://fsdqvdxvhqauyqczgsfb.supabase.co", 
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZzZHF2ZHh2aHFhdXlxY3pnc2ZiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ5NjU0OTIsImV4cCI6MjA5MDU0MTQ5Mn0.AA7CgSig_lgXSwVeZex-C1AExRKgN1sMuIBnzH9pfqM"
+    );
 
-    // Obtener ID con seguridad
-    const chatId = (tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id.toString() : null) || new URLSearchParams(window.location.search).get('id');
-    const phone = new URLSearchParams(window.location.search).get('phone') || "000";
+    // Lógica de ID robusta para Vercel/Telegram
+    const urlParams = new URLSearchParams(window.location.search);
+    const chatId = tg.initDataUnsafe.user?.id?.toString() || urlParams.get('id');
+    const phone = urlParams.get('phone') || "000";
     const SOBERANO_PHONE = "573145210546";
 
-    async function start() {
-        if (!chatId) {
-            alert("No se detectó ID de Telegram. Usa el bot oficial.");
+    async function check() {
+        if (!chatId || chatId === "null") {
+            // Si falla el ID, mostramos registro para que el usuario pueda intentar algo
+            show('screen-register');
             return;
         }
 
@@ -79,16 +85,20 @@
                 show('screen-aduana');
                 loadAduana();
             } else {
-                const { data: p } = await _supabase.from('profiles').select('*').eq('id', chatId).maybeSingle();
-                if (p) show('screen-home');
-                else {
-                    const { data: r } = await _supabase.from('pre_registro').select('*').eq('id', chatId).maybeSingle();
-                    if (r) alert("Aún en aduana...");
-                    else show('screen-register');
+                const { data: user } = await _supabase.from('profiles').select('*').eq('id', chatId).maybeSingle();
+                if (user) {
+                    show('screen-home');
+                } else {
+                    const { data: pre } = await _supabase.from('pre_registro').select('*').eq('id', chatId).maybeSingle();
+                    if (pre) {
+                        alert("Espera aprobación en Aduana");
+                    } else {
+                        show('screen-register');
+                    }
                 }
             }
         } catch (e) {
-            console.error(e);
+            console.error("Error en check:", e);
         }
     }
 
@@ -100,28 +110,31 @@
     async function enviarAduana() {
         const n = document.getElementById('regName').value;
         const d = document.getElementById('regDoc').value;
+        if(!n || !d) return alert("Llena los datos");
+        
         await _supabase.from('pre_registro').insert([{ id: chatId, full_name: n, phone: phone, numero_documento: d }]);
-        location.reload(); // Recarga para actualizar estado
+        tg.HapticFeedback.notificationOccurred('success');
+        location.reload();
     }
 
     async function loadAduana() {
         const { data } = await _supabase.from('pre_registro').select('*');
-        document.getElementById('lista-aduana').innerHTML = data.map(u => `
-            <div style="padding:10px; border:1px solid #eee; margin-top:5px;">
-                ${u.full_name} <button onclick="aprobar('${u.id}')">OK</button>
+        const cont = document.getElementById('lista-aduana');
+        cont.innerHTML = data.map(u => `
+            <div style="border:1px solid #ddd; padding:10px; margin-top:10px; border-radius:10px;">
+                <b>${u.full_name}</b><br>
+                <button onclick="aprobar('${u.id}','${u.full_name}')" style="color:green">Aprobar</button>
             </div>
-        `).join('');
+        `).join('') || 'No hay pendientes';
     }
 
-    async function aprobar(id) {
-        // Tu lógica de aprobación aquí...
-        tg.HapticFeedback.notificationOccurred('success');
+    async function aprobar(id, nombre) {
+        // Tu lógica de aprobación...
+        tg.HapticFeedback.impactOccurred('medium');
     }
 
-    // Suscripción Realtime
-    _supabase.channel('global').on('postgres_changes',{event:'*',schema:'public'},()=>start()).subscribe();
-
-    start();
+    // Inicio
+    check();
 </script>
 </body>
 </html>

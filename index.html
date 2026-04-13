@@ -19,48 +19,15 @@
         <div id="userBalance" style="font-weight: 800; color: var(--primary); font-size: 20px;">$0</div>
     </header>
 
-    <div id="screen-register" class="screen">
-        <div id="form-registro" style="display:none;">
-            <div style="text-align: center; margin-bottom: 30px;">
-                <i class="fas fa-id-card fa-3x" style="color: var(--primary);"></i>
-                <h2>Registro de Acceso</h2>
-                <p style="color: #64748b;">Completa tus datos para que el Soberano autorice tu ingreso.</p>
-            </div>
-            <input type="text" id="regName" placeholder="Nombre Completo">
-            <input type="number" id="regDoc" placeholder="Número de Documento">
-            <button id="btnSolicitar" class="btn-main">Solicitar Ingreso</button>
+    <div id="screen-home" class="screen active">
+        <div class="card" style="height: 200px; display: flex; align-items: center; justify-content: center; background: #f1f5f9;">
+            <p>Bienvenido a Samy App</p>
         </div>
-
-        <div id="aduana-msg" style="display:none; text-align: center; margin-top: 50px;">
-            <i class="fas fa-passport fa-4x" style="color: var(--primary); margin-bottom: 20px;"></i>
-            <h2>Identidad en Validación</h2>
-            <p style="color: #64748b;">Tus datos están en la Aduana de Samy. El Soberano Carlos revisará tu perfil pronto.</p>
-            <p id="msg-feedback" style="color: var(--success); font-size: 13px; margin-top: 20px; display: none;">¡Registro enviado con éxito!</p>
-        </div>
-    </div>
-
-    <div id="screen-home" class="screen">
-        <div class="card" style="height: 280px; display: flex; align-items: center; justify-content: center; background: #f1f5f9;">
-            <div style="text-align: center; color: #94a3b8;">
-                <i class="fas fa-location-crosshairs fa-3x"></i>
-                <p>Detectando ubicación...</p>
-            </div>
-        </div>
-        <button class="btn-main"><i class="fas fa-paper-plane"></i> Solicitar Servicio</button>
     </div>
 
     <div id="screen-aduana" class="screen">
-        <h3><i class="fas fa-shield-halved"></i> Gestión de Aduana</h3>
-        <p style="font-size: 12px; color: #64748b; margin-bottom: 20px;">Selecciona un aspirante para revisar sus documentos.</p>
+        <h3>Gestión de Aduana</h3>
         <div id="lista-aduana"></div>
-    </div>
-
-    <div id="screen-wallet" class="screen">
-        <div class="wallet-card">
-            <p style="opacity: 0.7; font-size: 14px;">Saldo Disponible</p>
-            <h1 id="walletAmount" style="font-size: 42px; margin: 10px 0;">$0</h1>
-            <i class="fas fa-wallet" style="opacity: 0.2; font-size: 50px;"></i>
-        </div>
     </div>
 
     <nav id="mainNav">
@@ -68,34 +35,14 @@
         <div id="nav-aduana-btn" class="nav-item" style="display:none;" onclick="changeScreen('aduana', this)">
             <i class="fas fa-passport"></i>Aduana <span id="count-badge" class="badge" style="display:none;">0</span>
         </div>
-        <div class="nav-item" onclick="changeScreen('wallet', this)"><i class="fas fa-wallet"></i>Billetera</div>
-        <div class="nav-item" onclick="changeScreen('profile', this)"><i class="fas fa-circle-user"></i>Perfil</div>
     </nav>
 </div>
 
 <div id="modal-review" class="modal-aduana">
     <div class="modal-content">
-        <h3 style="margin-top:0;"><i class="fas fa-user-check"></i> Revisar Aspirante</h3>
-        <hr style="border:0; border-top:1px solid #eee; margin-bottom:15px;">
-        
-        <label class="label-doc">Foto de Perfil</label>
-        <img id="view-foto-perfil" src="" class="img-review" onerror="this.src='https://via.placeholder.com/150?text=Sin+Foto'">
-        
-        <label class="label-doc">Cédula Frontal</label>
-        <img id="view-cedula-f" src="" class="img-review" onerror="this.src='https://via.placeholder.com/300x150?text=No+Cargada'">
-        
-        <label class="label-doc">Cédula Trasera</label>
-        <img id="view-cedula-t" src="" class="img-review" onerror="this.src='https://via.placeholder.com/300x150?text=No+Cargada'">
-
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:20px;">
-            <button id="btn-rechazar-final" class="btn-main" style="background:var(--danger); padding:12px;">
-                <i class="fas fa-times"></i> Rechazar
-            </button>
-            <button id="btn-aprobar-final" class="btn-main" style="background:var(--success); padding:12px;">
-                <i class="fas fa-check"></i> Aprobar
-            </button>
-        </div>
-        <button onclick="cerrarModal()" style="width:100%; background:none; border:none; color:#64748b; margin-top:15px; cursor:pointer; font-weight:600;">Cerrar Panel</button>
+        <img id="view-foto-perfil" class="img-review">
+        <button id="btn-aprobar-final" class="btn-main">Aprobar</button>
+        <button onclick="cerrarModal()">Cerrar</button>
     </div>
 </div>
 
@@ -103,61 +50,28 @@
     import { apiService } from './js/api.js';
     import { aduanaModule } from './js/aduana.js';
 
-    // 1. Exportar a Window para compatibilidad con onclick del HTML
-    window.cerrarModal = () => document.getElementById('modal-review').style.display = 'none';
-    window.abrirDetalleAduana = (user) => aduanaModule.abrirDetalle(user);
-
-    window.showScreen = (id) => {
-        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-        const target = document.getElementById(id);
-        if(target) target.classList.add('active');
-    };
-
+    // Vinculación global
     window.changeScreen = (type, el) => {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById('screen-' + type).classList.add('active');
         document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active-nav'));
         el.classList.add('active-nav');
-        window.showScreen('screen-' + type);
     };
+    
+    window.abrirDetalleAduana = (user) => aduanaModule.abrirDetalle(user);
+    window.cerrarModal = () => document.getElementById('modal-review').style.display = 'none';
 
-    // 2. Función de carga de datos (Soberano)
-    async function cargarAduana() {
-        try {
-            const aspirantes = await apiService.getAspirantes();
-            const container = document.getElementById('lista-aduana');
-            const badge = document.getElementById('count-badge');
-            
-            if (aspirantes && aspirantes.length > 0) {
-                badge.innerText = aspirantes.length;
-                badge.style.display = 'inline';
-                container.innerHTML = aspirantes.map(user => `
-                    <div class="card" onclick='abrirDetalleAduana(${JSON.stringify(user)})' style="cursor:pointer; display:flex; justify-content:space-between; align-items:center;">
-                        <div>
-                            <strong>${user.full_name}</strong><br>
-                            <small style="color: #64748b;">CC: ${user.numero_documento}</small>
-                        </div>
-                        <i class="fas fa-chevron-right" style="color:#cbd5e1;"></i>
-                    </div>
-                `).join('');
-            } else {
-                badge.style.display = 'none';
-                container.innerHTML = '<p style="text-align:center; color:#94a3b8;">No hay solicitudes.</p>';
-            }
-        } catch (error) { console.error("Error cargando lista:", error); }
-    }
-
-    // 3. Inicialización
     async function init() {
+        console.log("Iniciando Samy App...");
         const params = new URLSearchParams(window.location.search);
         const phone = params.get('phone');
-        const SOBERANO_PHONE = "573145210546"; 
-
-        if (phone === SOBERANO_PHONE) {
-            document.getElementById('userName').innerText = "Carlos (Soberano)";
-            document.getElementById('nav-aduana-btn').style.display = 'block';
-            await cargarAduana();
-        }
         
-        window.showScreen('screen-home');
+        // El teléfono del Soberano que definiste
+        if (phone === "573145210546") {
+            document.getElementById('nav-aduana-btn').style.display = 'block';
+            const data = await apiService.getAspirantes();
+            // Lógica para pintar la lista aquí o en aduana.js
+        }
     }
 
     init();

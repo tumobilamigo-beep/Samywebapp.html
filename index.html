@@ -198,35 +198,53 @@ window.changeScreen = async (type, el) => {
     // ─── ADUANA: MODAL ────────────────────────────────────────────
     window.abrirDetalleAduana = (user) => aduanaModule.abrirDetalle(user);
     window.cerrarModal = () => document.getElementById('modal-review').style.display = 'none';
-
-    // ─── Problema 2: enviarAduana() ───────────────────────────────
     window.enviarAduana = async () => {
         const nombre = document.getElementById('regName').value.trim();
         const doc    = document.getElementById('regDoc').value.trim();
 
         if (!nombre || !doc) {
-            telegramUtils.showError('Completa todos los campos');
+            telegramUtils.showError('Completa nombre y documento.');
+            return;
+        }
+
+        const filePerfil  = document.getElementById('input-foto-perfil').files[0];
+        const fileFrontal = document.getElementById('input-cedula-f').files[0];
+        const fileTrasera = document.getElementById('input-cedula-t').files[0];
+
+        if (!filePerfil || !fileFrontal || !fileTrasera) {
+            telegramUtils.showError('Sube las tres fotos para continuar.');
             return;
         }
 
         telegramUtils.setLoading(true);
 
-        const { error } = await _supabase.from('pre_registro').insert([{
-            id:               window._chatId,
-            phone:            window._phone,
-            full_name:        nombre,
-            numero_documento: doc,
-            status:           'pendiente'
-        }]);
+        try {
+            const { fotoPerfilUrl, cedulaFrontalUrl, cedulaTraseraUrl } =
+                await cloudinaryModule.subirFotosRegistro(filePerfil, fileFrontal, fileTrasera);
 
-        telegramUtils.setLoading(false);
+            const { error } = await _supabase.from('pre_registro').insert([{
+                id:                 window._chatId,
+                phone:              window._phone,
+                full_name:          nombre,
+                numero_documento:   doc,
+                foto_perfil_url:    fotoPerfilUrl,
+                cedula_frontal_url: cedulaFrontalUrl,
+                cedula_trasera_url: cedulaTraseraUrl,
+                status:             'pendiente'
+            }]);
 
-        if (!error) {
-            document.getElementById('form-registro').style.display  = 'none';
-            document.getElementById('aduana-msg').style.display     = 'block';
-            telegramUtils.showSuccess('¡Registro enviado con éxito!');
-        } else {
-            telegramUtils.showError('Error: ' + error.message);
+            if (!error) {
+                document.getElementById('form-registro').style.display = 'none';
+                document.getElementById('aduana-msg').style.display    = 'block';
+                telegramUtils.showSuccess('¡Registro enviado con éxito!');
+            } else {
+                telegramUtils.showError('Error: ' + error.message);
+            }
+
+        } catch (err) {
+            telegramUtils.showError('Error al subir fotos: ' + err.message);
+        } finally {
+            telegramUtils.setLoading(false);
         }
     };
 
@@ -315,13 +333,12 @@ window.changeScreen = async (type, el) => {
         await tripsModule.verificarViajeActivo(window._chatId)
         
     } else if (preRegistro) {
-        document.getElementById('aduana-msg').style.display = 'block';
-        window.showScreen('screen-register');
-
-    } else {
-        document.getElementById('form-registro').style.display = 'block';
-        window.showScreen('screen-register');
-    }
+            cloudinaryModule.renderEspera();       // ← renderiza mensaje de espera
+            window.showScreen('screen-register');
+        } else {
+            cloudinaryModule.renderFormulario();   // ← renderiza formulario con fotos
+            window.showScreen('screen-register');
+        }
 }
     init();
 </script>

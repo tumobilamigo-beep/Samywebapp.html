@@ -8,6 +8,48 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="css/style.css">
 
+<div id="screen-driver" class="screen">
+
+    <!-- Estado del conductor -->
+    <div class="card" style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <p style="margin:0; font-size:12px; color:#64748b;">Estado</p>
+            <h3 id="driver-status-text" style="margin:4px 0; color: var(--danger);">
+                No disponible
+            </h3>
+        </div>
+        <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
+            <span style="font-size:13px; color:#64748b;">Disponible</span>
+            <input type="checkbox" id="toggle-disponible" 
+                   onchange="toggleDisponibilidad(this.checked)"
+                   style="width:40px; height:20px; cursor:pointer;">
+        </label>
+    </div>
+
+    <!-- Documentos del conductor -->
+    <div class="card" id="card-documentos">
+        <p style="margin:0 0 10px; font-weight:700; font-size:13px;">
+            <i class="fas fa-file-shield"></i> Documentos
+        </p>
+        <div id="doc-soat"          style="font-size:13px; margin-bottom:6px;"></div>
+        <div id="doc-tecnomecanica" style="font-size:13px; margin-bottom:6px;"></div>
+        <div id="doc-licencia"      style="font-size:13px;"></div>
+    </div>
+
+    <!-- Viajes disponibles -->
+    <div>
+        <p style="font-weight:700; font-size:13px; margin-bottom:10px;">
+            <i class="fas fa-route"></i> Viajes disponibles
+            <span id="driver-badge" class="badge" style="display:none; position:relative; top:-2px; right:0; margin-left:5px;">0</span>
+        </p>
+        <div id="lista-viajes-driver"></div>
+        <p id="driver-sin-viajes" style="text-align:center; color:#94a3b8; font-size:13px;">
+            Sin viajes disponibles por ahora.
+        </p>
+    </div>
+
+</div>
+    
 <div id="app">
     <header>
         <div class="user-info">
@@ -89,7 +131,7 @@
         <button onclick="cerrarModal()">Cerrar</button>
     </div>
 </div>
-
+    
 <script type="module">
      // ─── IMPORTS ──────────────────────────────────────────────────
     import { _supabase, apiService } from './js/api.js';
@@ -97,6 +139,8 @@
     import { telegramUtils } from './js/utils.js';
     import { geoModule } from './js/geo.js';
     import { tripsModule } from './js/trips.js';
+    import { driverModule } from './js/driver.js'; 
+
 
      // ─── NAVEGACIÓN ───────────────────────────────────────────────
     window.showScreen = (id) => {
@@ -171,6 +215,9 @@
     
     // ✅ geo.js se encarga de todo
         window.reintentarGeo = () => geoModule.reintentar(window._chatId);
+
+    // ─── CONDUCTOR ────────────────────────────────────────────────
+        window.driverModule = driverModule; // expone al HTML para los onclick
     
     // ─── INIT ─────────────────────────────────────────────────────
    async function init() {

@@ -8,48 +8,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="css/style.css">
 
-<div id="screen-driver" class="screen">
-
-    <!-- Estado del conductor -->
-    <div class="card" style="display: flex; justify-content: space-between; align-items: center;">
-        <div>
-            <p style="margin:0; font-size:12px; color:#64748b;">Estado</p>
-            <h3 id="driver-status-text" style="margin:4px 0; color: var(--danger);">
-                No disponible
-            </h3>
-        </div>
-        <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
-            <span style="font-size:13px; color:#64748b;">Disponible</span>
-            <input type="checkbox" id="toggle-disponible" 
-                   onchange="toggleDisponibilidad(this.checked)"
-                   style="width:40px; height:20px; cursor:pointer;">
-        </label>
-    </div>
-
-    <!-- Documentos del conductor -->
-    <div class="card" id="card-documentos">
-        <p style="margin:0 0 10px; font-weight:700; font-size:13px;">
-            <i class="fas fa-file-shield"></i> Documentos
-        </p>
-        <div id="doc-soat"          style="font-size:13px; margin-bottom:6px;"></div>
-        <div id="doc-tecnomecanica" style="font-size:13px; margin-bottom:6px;"></div>
-        <div id="doc-licencia"      style="font-size:13px;"></div>
-    </div>
-
-    <!-- Viajes disponibles -->
-    <div>
-        <p style="font-weight:700; font-size:13px; margin-bottom:10px;">
-            <i class="fas fa-route"></i> Viajes disponibles
-            <span id="driver-badge" class="badge" style="display:none; position:relative; top:-2px; right:0; margin-left:5px;">0</span>
-        </p>
-        <div id="lista-viajes-driver"></div>
-        <p id="driver-sin-viajes" style="text-align:center; color:#94a3b8; font-size:13px;">
-            Sin viajes disponibles por ahora.
-        </p>
-    </div>
-
-</div>
-    
+   
 <div id="app">
     <header>
         <div class="user-info">
@@ -59,6 +18,25 @@
         <div id="userBalance" style="font-weight: 800; color: var(--primary); font-size: 20px;">$0</div>
     </header>
 
+    <div id="screen-register" class="screen">
+        <div id="form-registro" style="display:none;">
+            <div style="text-align: center; margin-bottom: 30px;">
+                <i class="fas fa-id-card fa-3x" style="color: var(--primary);"></i>
+                <h2>Registro de Acceso</h2>
+                <p style="color: #64748b;">Completa tus datos para que el Soberano autorice tu ingreso.</p>
+            </div>
+            <input type="text" id="regName" placeholder="Nombre Completo">
+            <input type="number" id="regDoc" placeholder="Número de Documento">
+            <button id="btnSolicitar" class="btn-main" onclick="enviarAduana()">Solicitar Ingreso</button>
+        </div>
+        <div id="aduana-msg" style="display:none; text-align: center; margin-top: 50px;">
+            <i class="fas fa-passport fa-4x" style="color: var(--primary); margin-bottom: 20px;"></i>
+            <h2>Identidad en Validación</h2>
+            <p style="color: #64748b;">Tus datos están en la Aduana. El Soberano revisará tu perfil pronto.</p>
+            <p id="msg-feedback" style="font-size: 13px; margin-top: 20px; display:none;"></p>
+        </div>
+    </div>
+    
    <div id="screen-home" class="screen">
 
     <!-- Tarjeta del mapa / ubicación -->
@@ -116,11 +94,66 @@
         <div id="lista-aduana"></div>
     </div>
 
+    <div id="screen-driver" class="screen">
+
+    <!-- Estado del conductor -->
+    <div class="card" style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <p style="margin:0; font-size:12px; color:#64748b;">Estado</p>
+            <h3 id="driver-status-text" style="margin:4px 0; color: var(--danger);">
+                No disponible
+            </h3>
+        </div>
+        <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
+            <span style="font-size:13px; color:#64748b;">Disponible</span>
+            <input type="checkbox" id="toggle-disponible" 
+                   onchange="toggleDisponibilidad(this.checked)"
+                   style="width:40px; height:20px; cursor:pointer;">
+        </label>
+    </div>
+
+    <!-- Documentos del conductor -->
+    <div class="card" id="card-documentos">
+        <p style="margin:0 0 10px; font-weight:700; font-size:13px;">
+            <i class="fas fa-file-shield"></i> Documentos
+        </p>
+        <div id="doc-soat"          style="font-size:13px; margin-bottom:6px;"></div>
+        <div id="doc-tecnomecanica" style="font-size:13px; margin-bottom:6px;"></div>
+        <div id="doc-licencia"      style="font-size:13px;"></div>
+    </div>
+
+    <!-- Viajes disponibles -->
+    <div>
+        <p style="font-weight:700; font-size:13px; margin-bottom:10px;">
+            <i class="fas fa-route"></i> Viajes disponibles
+            <span id="driver-badge" class="badge" style="display:none; position:relative; top:-2px; right:0; margin-left:5px;">0</span>
+        </p>
+        <div id="lista-viajes-driver"></div>
+        <p id="driver-sin-viajes" style="text-align:center; color:#94a3b8; font-size:13px;">
+            Sin viajes disponibles por ahora.
+        </p>
+    </div>
+
+</div>
+
+       <div id="screen-wallet" class="screen">
+        <div class="wallet-card">
+            <p style="opacity: 0.7; font-size: 14px;">Saldo Disponible</p>
+            <h1 id="walletAmount" style="font-size: 42px; margin: 10px 0;">$0</h1>
+            <i class="fas fa-wallet" style="opacity: 0.2; font-size: 50px;"></i>
+        </div>
+    </div>
+    
     <nav id="mainNav">
+        
         <div class="nav-item active-nav" onclick="changeScreen('home', this)"><i class="fas fa-compass"></i>Mapa</div>
         <div id="nav-aduana-btn" class="nav-item" style="display:none;" onclick="changeScreen('aduana', this)">
             <i class="fas fa-passport"></i>Aduana <span id="count-badge" class="badge" style="display:none;">0</span>
         </div>
+        <div id="nav-driver-btn" class="nav-item" style="display:none;" onclick="changeScreen('driver', this)">
+        <i class="fas fa-car"></i>Conductor
+    </div> 
+
     </nav>
 </div>
 
@@ -210,10 +243,6 @@
     }
 
     // ─── GEOLOCALIZACIÓN ──────────────────────────────────────────
-    // Después ✅
-        geoModule.iniciarConUI(window._chatId);  
-    
-    // ✅ geo.js se encarga de todo
         window.reintentarGeo = () => geoModule.reintentar(window._chatId);
 
     // ─── CONDUCTOR ────────────────────────────────────────────────
@@ -245,9 +274,13 @@
             document.getElementById('nav-aduana-btn').style.display = 'flex';
             await cargarAduana();
         }
-
+            if (profile.role === 'conductor' && profile.habilitado_por_admin) {
+            document.getElementById('nav-driver-btn').style.display = 'flex';
+            await driverModule.iniciarPanelDriver(window._chatId);
+        }
+        
         window.showScreen('screen-home');
-        iniciarGeo(); // ← agrega esta línea aquí
+         geoModule.iniciarConUI(window._chatId);
 
     } else if (preRegistro) {
         document.getElementById('aduana-msg').style.display = 'block';

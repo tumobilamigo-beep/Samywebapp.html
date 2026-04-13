@@ -303,7 +303,7 @@ window.changeScreen = async (type, el) => {
             await driverModule.iniciarPanelDriver(window._chatId);
         }
         // Guarda el role para usarlo en la billetera
-        window._role = profile.role;
+        window._role = rolData?.role || profile.role || 'cliente';
         
         window.showScreen('screen-home');
         geoModule.iniciarConUI(window._chatId);

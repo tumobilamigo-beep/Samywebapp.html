@@ -45,34 +45,114 @@
 </div>
 
 <script type="module">
-    import { apiService } from './js/api.js';
+    import { _supabase, apiService } from './js/api.js';
     import { aduanaModule } from './js/aduana.js';
+    import { telegramUtils } from './js/utils.js';
 
-    // Vinculación global
-    window.changeScreen = (type, el) => {
+    // ─── Navegación ───────────────────────────────────────────────
+    window.showScreen = (id) => {
         document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-        document.getElementById('screen-' + type).classList.add('active');
+        document.getElementById(id).classList.add('active');
+    };
+
+    window.changeScreen = (type, el) => {
         document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active-nav'));
         el.classList.add('active-nav');
+        window.showScreen('screen-' + type);
     };
-    
+
+    // ─── Aduana: modal ────────────────────────────────────────────
     window.abrirDetalleAduana = (user) => aduanaModule.abrirDetalle(user);
     window.cerrarModal = () => document.getElementById('modal-review').style.display = 'none';
 
+    // ─── Problema 2: enviarAduana() ───────────────────────────────
+    window.enviarAduana = async () => {
+        const nombre = document.getElementById('regName').value.trim();
+        const doc    = document.getElementById('regDoc').value.trim();
+
+        if (!nombre || !doc) {
+            telegramUtils.showError('Completa todos los campos');
+            return;
+        }
+
+        telegramUtils.setLoading(true);
+
+        const { error } = await _supabase.from('pre_registro').insert([{
+            id:               window._chatId,
+            phone:            window._phone,
+            full_name:        nombre,
+            numero_documento: doc,
+            status:           'pendiente'
+        }]);
+
+        telegramUtils.setLoading(false);
+
+        if (!error) {
+            document.getElementById('form-registro').style.display  = 'none';
+            document.getElementById('aduana-msg').style.display     = 'block';
+            telegramUtils.showSuccess('¡Registro enviado con éxito!');
+        } else {
+            telegramUtils.showError('Error: ' + error.message);
+        }
+    };
+
+    // ─── Cargar lista de aspirantes (Soberano) ────────────────────
+    async function cargarAduana() {
+        const aspirantes = await apiService.getAspirantes();
+        const badge = document.getElementById('count-badge');
+        badge.textContent = aspirantes.length;
+        badge.style.display = aspirantes.length > 0 ? 'inline' : 'none';
+
+        document.getElementById('lista-aduana').innerHTML = aspirantes.map(u => `
+            <div class="card" style="cursor:pointer;" onclick='abrirDetalleAduana(${JSON.stringify(u)})'>
+                <strong>${u.full_name}</strong>
+                <p style="margin:4px 0; font-size:13px; color:#64748b;">
+                    📞 ${u.phone} · Doc: ${u.numero_documento}
+                </p>
+                <p style="margin:0; font-size:11px; color:#94a3b8;">
+                    ${telegramUtils.formatDate(u.created_at)}
+                </p>
+            </div>
+        `).join('');
+    }
+
+    // ─── Init ─────────────────────────────────────────────────────
     async function init() {
-        console.log("Iniciando Samy App...");
-        const params = new URLSearchParams(window.location.search);
-        const phone = params.get('phone');
-        
-        // El teléfono del Soberano que definiste
-        if (phone === "573145210546") {
-            document.getElementById('nav-aduana-btn').style.display = 'block';
-            const data = await apiService.getAspirantes();
-            // Lógica para pintar la lista aquí o en aduana.js
+        const { chatId, phone } = telegramUtils.getUrlParams();
+
+        if (!chatId || !phone) {
+            document.getElementById('userName').textContent = 'Acceso inválido';
+            return;
+        }
+
+        window._chatId = chatId;
+        window._phone  = phone;
+
+        const { profile, preRegistro } = await apiService.verificarIdentidad(chatId);
+
+        if (profile) {
+            document.getElementById('userName').textContent    = profile.full_name;
+            document.getElementById('userBalance').textContent = telegramUtils.formatCOP(profile.balance_prepago || 0);
+
+            if (telegramUtils.esSoberano(phone)) {
+                document.getElementById('nav-aduana-btn').style.display = 'flex';
+                await cargarAduana();
+            }
+
+            window.showScreen('screen-home');
+
+        } else if (preRegistro) {
+            document.getElementById('aduana-msg').style.display = 'block';
+            window.showScreen('screen-register');
+
+        } else {
+            document.getElementById('form-registro').style.display = 'block';
+            window.showScreen('screen-register');
         }
     }
 
     init();
 </script>
+    
 </body> 
 </html>

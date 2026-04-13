@@ -248,6 +248,21 @@
 
     // ─── CONDUCTOR ────────────────────────────────────────────────
         window.driverModule = driverModule; // expone al HTML para los onclick
+   
+    // ─── VIAJES ───────────────────────────────────────────────────  
+    window.tripsModule = tripsModule;
+
+    window.solicitarViaje = async () => {
+        const pos     = geoModule.getPosicion();
+        const destino = document.getElementById('input-destino').value.trim();
+
+        if (!pos)     { telegramUtils.showError('Espera a que se detecte tu ubicación.'); return; }
+        if (!destino) { telegramUtils.showError('Escribe tu destino.'); return; }
+
+        await tripsModule.iniciarSolicitud(window._chatId, destino, pos);
+    };
+
+    window.cancelarViaje = () => tripsModule.iniciarCancelacion();
     
     // ─── INIT ─────────────────────────────────────────────────────
    async function init() {
@@ -266,8 +281,7 @@
     if (profile) {
         document.getElementById('userName').textContent    = profile.full_name;
         document.getElementById('userBalance').textContent = telegramUtils.formatCOP(profile.balance_prepago || 0);
-        window.showScreen('screen-home');
-        geoModule.iniciarConUI(window._chatId);
+        
         await tripsModule.verificarViajeActivo(window._chatId)
 
         // ✅ Problema 7: verificación server-side — consulta la DB, no confía en la URL

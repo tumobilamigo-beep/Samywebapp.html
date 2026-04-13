@@ -37,5 +37,18 @@ export const apiService = {
         const preRegistro = await _supabase
             .from('pre_registro').select('*').eq('id', id).maybeSingle();
         return { profile: profile.data, preRegistro: preRegistro.data };
-    }
+    },
+
+    // Verifica el rol real del usuario desde la DB, no desde la URL
+    async getRolUsuario(chatId) {
+        const { data, error } = await _supabase
+            .from('profiles')
+            .select('role, habilitado_por_admin')
+            .eq('id', Number(chatId))
+            .maybeSingle();
+    
+        if (error || !data) return null;
+        return data; // { role: 'cliente' | 'conductor' | 'admin', habilitado_por_admin: bool }
+}
+    
 };

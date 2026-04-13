@@ -8,27 +8,34 @@ export const _supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANO
 export const apiService = {
 
     async getAspirantes() {
-        const { data, error } = await _supabase.from('pre_registro').select('*').eq('status', 'pendiente');
+        const { data, error } = await _supabase
+            .from('pre_registro').select('*').eq('status', 'pendiente');
         if (error) throw error;
         return data;
     },
 
     async eliminarDeAduana(id) {
-        return await _supabase.from('pre_registro').delete().eq('id', id);
+        return await _supabase
+            .from('pre_registro').delete().eq('id', Number(id)); // ← Number()
     },
 
+    // ✅ Problema 6 corregido: id llega como string desde URL, se castea a Number
     async crearPerfil(id, nombre, telefono) {
         return await _supabase.from('profiles').insert([{
-            id: id,
-            full_name: nombre,
-            phone: telefono,
+            id:              Number(id),  // ← BIGINT requiere número, no string
+            full_name:       nombre,
+            phone:           telefono,
             balance_prepago: 0
         }]);
     },
 
+    // ✅ Problema 6 corregido: .eq() con BIGINT necesita número para match exacto
     async verificarIdentidad(chatId) {
-        const profile = await _supabase.from('profiles').select('*').eq('id', chatId).maybeSingle();
-        const preRegistro = await _supabase.from('pre_registro').select('*').eq('id', chatId).maybeSingle();
+        const id = Number(chatId); // ← una sola conversión, se reutiliza abajo
+        const profile = await _supabase
+            .from('profiles').select('*').eq('id', id).maybeSingle();
+        const preRegistro = await _supabase
+            .from('pre_registro').select('*').eq('id', id).maybeSingle();
         return { profile: profile.data, preRegistro: preRegistro.data };
     }
 };

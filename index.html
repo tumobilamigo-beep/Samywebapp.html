@@ -74,12 +74,13 @@
 </div>
 
 <script type="module">
+     // ─── IMPORTS ──────────────────────────────────────────────────
     import { _supabase, apiService } from './js/api.js';
     import { aduanaModule } from './js/aduana.js';
     import { telegramUtils } from './js/utils.js';
     import { geoModule } from './js/geo.js';
 
-    // ─── Navegación ───────────────────────────────────────────────
+     // ─── NAVEGACIÓN ───────────────────────────────────────────────
     window.showScreen = (id) => {
         document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
         document.getElementById(id).classList.add('active');
@@ -91,7 +92,7 @@
         window.showScreen('screen-' + type);
     };
 
-    // ─── Aduana: modal ────────────────────────────────────────────
+    // ─── ADUANA: MODAL ────────────────────────────────────────────
     window.abrirDetalleAduana = (user) => aduanaModule.abrirDetalle(user);
     window.cerrarModal = () => document.getElementById('modal-review').style.display = 'none';
 
@@ -126,7 +127,7 @@
         }
     };
 
-    // ─── Cargar lista de aspirantes (Soberano) ────────────────────
+    // ─── CARGAR LISTA ASPIRANTES EN ADUANA ────────────────────────────────────
     async function cargarAduana() {
         const aspirantes = await apiService.getAspirantes();
         const badge = document.getElementById('count-badge');
@@ -146,7 +147,7 @@
         `).join('');
     }
 
-    // Inicia geolocalización y actualiza la UI
+    // ─── GEOLOCALIZACIÓN ──────────────────────────────────────────
     function iniciarGeo() {
         geoModule.iniciar(
             // onSuccess
@@ -184,7 +185,7 @@
         iniciarGeo();
     };  
     
-    // ─── Init ─────────────────────────────────────────────────────
+    // ─── INIT ─────────────────────────────────────────────────────
    async function init() {
     const { chatId, phone } = telegramUtils.getUrlParams();
 
